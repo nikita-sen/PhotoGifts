@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>𝗡𝗶𝗰𝗸𝘆𝗰𝗿𝗮𝗳𝘁 - Custom Photo Products & Personalized Gifts</title>
+    <title>𝗡𝗶𝗰𝗸𝘆𝗰𝗿𝗮𝗳𝘁 - Personalized Photo Products & Personalized Gifts</title>
     <style>
         /* Design System - Professional Update */
         :root {
@@ -537,7 +537,15 @@
             transition: transform var(--transition-slow);
         }
 
-        .product-card:hover .product-image img {
+        .product-image video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform var(--transition-slow);
+        }
+
+        .product-card:hover .product-image img,
+        .product-card:hover .product-image video {
             transform: scale(1.05);
         }
 
@@ -716,12 +724,12 @@
             margin-bottom: var(--space-8);
         }
 
-        /* Image Gallery with Click to View Large - Amazon Style */
+        /* Video/Image Gallery - Updated for Video Support */
         .product-detail-gallery {
             position: relative;
         }
 
-        .product-main-image-container {
+        .product-main-media-container {
             width: 100%;
             aspect-ratio: 1;
             background: linear-gradient(135deg, var(--color-purple-50) 0%, var(--color-white) 100%);
@@ -733,15 +741,39 @@
             border: 1px solid var(--color-border);
         }
 
-        .product-main-image-container:hover .view-large-text {
+        .product-main-media-container:hover .view-large-text {
             opacity: 1;
         }
 
-        .product-main-image {
+        .product-main-media {
             width: 100%;
             height: 100%;
             object-fit: contain;
             transition: transform var(--transition-base);
+        }
+
+        .video-play-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            z-index: 2;
+        }
+
+        .video-play-button:hover {
+            background: rgba(0, 0, 0, 0.9);
+            transform: translate(-50%, -50%) scale(1.1);
         }
 
         .view-large-text {
@@ -759,6 +791,7 @@
             gap: var(--space-2);
             opacity: 0;
             transition: opacity var(--transition-base);
+            z-index: 2;
         }
 
         .product-thumbnails {
@@ -775,6 +808,7 @@
             cursor: pointer;
             transition: all var(--transition-fast);
             border: 2px solid transparent;
+            position: relative;
         }
 
         .product-thumbnail:hover {
@@ -786,10 +820,72 @@
             border-color: var(--color-primary);
         }
 
-        .product-thumbnail img {
+        .product-thumbnail img,
+        .product-thumbnail video {
             width: 100%;
             height: 100%;
             object-fit: cover;
+        }
+
+        .video-thumbnail-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 4px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        /* Video Lightbox Modal */
+        .video-lightbox-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity var(--transition-base);
+        }
+
+        .video-lightbox-modal.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .video-lightbox-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 90%;
+            width: auto;
+            height: auto;
+        }
+
+        .video-lightbox-video {
+            max-width: 100%;
+            max-height: 80vh;
+            border-radius: var(--radius-lg);
+            background: #000;
+        }
+
+        .video-lightbox-close {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            padding: var(--space-2);
+            z-index: 10;
         }
 
         /* Lightbox Modal for Image Gallery */
@@ -1555,7 +1651,7 @@
             <div class="hero-content">
                 <span class="subtitle">Premium Personalized Gifts</span>
                 <h1>Transform Memories Into Timeless Treasures</h1>
-                <p>Custom photo frames, invitations & more. Create personalized gifts that tell your unique story.</p>
+                <p>Personalized photo frames, invitations & more. Create personalized gifts that tell your unique story.</p>
                 <div class="hero-actions">
                     <a href="#products" class="btn btn-primary">Explore Collection</a>
                     <button class="btn btn-secondary" onclick="openContactModal()">
@@ -1592,6 +1688,16 @@
             <div class="lightbox-counter" id="lightboxCounter"></div>
         </div>
         <button class="lightbox-nav lightbox-next" onclick="nextLightboxImage()">›</button>
+    </div>
+
+    <!-- Video Lightbox Modal -->
+    <div class="video-lightbox-modal" id="videoLightboxModal">
+        <button class="video-lightbox-close" onclick="closeVideoLightbox()">×</button>
+        <div class="video-lightbox-content">
+            <video class="video-lightbox-video" id="videoLightboxVideo" controls>
+                Your browser does not support the video tag.
+            </video>
+        </div>
     </div>
 
     <!-- Contact Modal -->
@@ -1715,26 +1821,30 @@
     </footer>
 
     <script>
-        // Products Data - Updated with SIMPLIFIED local image paths
+        // Products Data - Updated with Video Support
         const products = [
             {
                 id: 1,
-                name: "Custom Magazine",
+                name: "Personalized Magazine",
                 category: "magazines",
                 basePrice: 440,
                 desc: "Create your own personalized magazine with your photos and stories",
                 specs: "A4 size, Glossy finish, High-quality print, Professional binding",
                 details: "Create your own magazine with your favorite photos, stories, and memories. Perfect for special events or personal keepsakes. Choose the number of pages that fits your story.",
                 badge: "Popular",
-                image: "images/products/magazine-custom.jpg",
+                video: "videos/magazine-sample.mp4", // Main product video
+                thumbnail: "images/products/magazine-custom.jpg", // Thumbnail for video
                 samples: [
-                    "images/samples/magazine-custom-1.jpg",
-                    "images/samples/magazine-custom-2.jpg",
-                    "images/samples/magazine-custom-3.jpg",
-                    "images/samples/magazine-custom-4.jpg"
+                    // Video samples for Magazine instead of images
+                    { type: "video", src: "videos/samples/magazine-sample-1.mp4", thumbnail: "images/samples/magazine-custom-1.jpg" },
+                    { type: "video", src: "videos/samples/magazine-sample-2.mp4", thumbnail: "images/samples/magazine-custom-2.jpg" },
+                    { type: "video", src: "videos/samples/magazine-sample-3.mp4", thumbnail: "images/samples/magazine-custom-3.jpg" },
+                    { type: "video", src: "videos/samples/magazine-sample-4.mp4", thumbnail: "images/samples/magazine-custom-4.jpg" }
                 ],
                 emoji: "📚",
                 customizable: true,
+                hasVideo: true,
+                hasVideoSamples: true, // Flag to identify products with video samples
                 options: [
                     {
                         label: "Pages",
@@ -1752,10 +1862,10 @@
             
             {
                 id: 2,
-                name: "Custom Photo Frame",
+                name: "Personalized Photo Frame",
                 category: "frames",
                 basePrice: 199,
-                desc: "Display your favorite photos in beautiful custom frames",
+                desc: "Display your favorite photos in beautiful Personalized frames",
                 specs: "Wood material, Glass front, Ready to hang, High-quality finish",
                 details: "Perfect for displaying your favorite photos. Made with premium wood and glass front for protection. Choose the size that fits your space.",
                 badge: null,
@@ -1768,6 +1878,8 @@
                 ],
                 emoji: "🖼️",
                 customizable: true,
+                hasVideo: false,
+                hasVideoSamples: false,
                 options: [
                     {
                         label: "Size",
@@ -1786,10 +1898,10 @@
             
             {
                 id: 3,
-                name: "Custom Poster",
+                name: "Personalized Poster",
                 category: "posters",
                 basePrice: 60,
-                desc: "High-quality custom posters for your photos",
+                desc: "High-quality Personalized posters for your photos",
                 specs: "Matte finish, High-quality print, Durable paper, Vibrant colors",
                 details: "Transform your favorite photos into beautiful posters. Perfect for home decor, events, or as gifts. Choose the size that suits your needs.",
                 badge: null,
@@ -1802,6 +1914,8 @@
                 ],
                 emoji: "🖼️",
                 customizable: true,
+                hasVideo: false,
+                hasVideoSamples: false,
                 options: [
                     {
                         label: "Size",
@@ -1823,7 +1937,7 @@
                 category: "cards",
                 basePrice: 850,
                 desc: "Personalized handmade cards for special occasions",
-                specs: "Handcrafted, Custom design, Premium paper, Envelope included",
+                specs: "Handcrafted, Personalized design, Premium paper, Envelope included",
                 details: "Beautiful handmade cards personalized with your photos and messages. Each card is uniquely crafted for your special occasion.",
                 badge: "Handmade",
                 image: "images/products/card-custom.jpg",
@@ -1835,6 +1949,8 @@
                 ],
                 emoji: "💌",
                 customizable: true,
+                hasVideo: false,
+                hasVideoSamples: false,
                 options: [
                     {
                         label: "Occasion",
@@ -1867,6 +1983,8 @@
                 ],
                 emoji: "📸",
                 customizable: true,
+                hasVideo: false,
+                hasVideoSamples: false,
                 options: [
                     {
                         label: "Quantity",
@@ -1900,6 +2018,8 @@
                 ],
                 emoji: "📸",
                 customizable: true,
+                hasVideo: false,
+                hasVideoSamples: false,
                 options: [
                     {
                         label: "Photos per Strip",
@@ -1919,18 +2039,22 @@
                 category: "invitations",
                 price: 750,
                 desc: "Elegant digital wedding invitation",
-                specs: "Digital format, Custom design, Shareable link, RSVP tracking",
+                specs: "Digital format, Personalized design, Shareable link, RSVP tracking",
                 details: "Beautiful digital wedding invitations that can be easily shared via WhatsApp, email, or social media. Includes RSVP tracking.",
                 badge: "Wedding",
-                image: "images/products/invitation-wedding.jpg",
+                video: "videos/invitation-wedding.mp4", // Main product video
+                thumbnail: "images/products/invitation-wedding.jpg", // Thumbnail for video
                 samples: [
-                    "images/samples/invitation-wedding-1.jpg",
-                    "images/samples/invitation-wedding-2.jpg",
-                    "images/samples/invitation-wedding-3.jpg",
-                    "images/samples/invitation-wedding-4.jpg"
+                    // Video samples for E-Invitation instead of images
+                    { type: "video", src: "videos/samples/wedding-invitation-sample-1.mp4", thumbnail: "images/samples/invitation-wedding-1.jpg" },
+                    { type: "video", src: "videos/samples/wedding-invitation-sample-2.mp4", thumbnail: "images/samples/invitation-wedding-2.jpg" },
+                    { type: "video", src: "videos/samples/wedding-invitation-sample-3.mp4", thumbnail: "images/samples/invitation-wedding-3.jpg" },
+                    { type: "video", src: "videos/samples/wedding-invitation-sample-4.mp4", thumbnail: "images/samples/invitation-wedding-4.jpg" }
                 ],
                 emoji: "💒",
-                customizable: false
+                customizable: false,
+                hasVideo: true,
+                hasVideoSamples: true,
             },
             {
                 id: 8,
@@ -1941,15 +2065,19 @@
                 specs: "Digital format, Fun designs, Customizable, Easy sharing",
                 details: "Make birthday celebrations more fun with personalized digital invitations. Easy to share with all your guests.",
                 badge: "Birthday",
-                image: "images/products/invitation-birthday.jpg",
+                video: "videos/invitation-birthday.mp4", // Main product video
+                thumbnail: "images/products/invitation-birthday.jpg", // Thumbnail for video
                 samples: [
-                    "images/samples/invitation-birthday-1.jpg",
-                    "images/samples/invitation-birthday-2.jpg",
-                    "images/samples/invitation-birthday-3.jpg",
-                    "images/samples/invitation-birthday-4.jpg"
+                    // Video samples for E-Invitation instead of images
+                    { type: "video", src: "videos/samples/birthday-invitation-sample-1.mp4", thumbnail: "images/samples/invitation-birthday-1.jpg" },
+                    { type: "video", src: "videos/samples/birthday-invitation-sample-2.mp4", thumbnail: "images/samples/invitation-birthday-2.jpg" },
+                    { type: "video", src: "videos/samples/birthday-invitation-sample-3.mp4", thumbnail: "images/samples/invitation-birthday-3.jpg" },
+                    { type: "video", src: "videos/samples/birthday-invitation-sample-4.mp4", thumbnail: "images/samples/invitation-birthday-4.jpg" }
                 ],
                 emoji: "🎂",
-                customizable: false
+                customizable: false,
+                hasVideo: true,
+                hasVideoSamples: true,
             },
             {
                 id: 9,
@@ -1960,15 +2088,19 @@
                 specs: "Digital format, Elegant designs, Custom text, Shareable",
                 details: "Celebrate special anniversaries with elegant digital invitations that reflect the importance of the occasion.",
                 badge: "Anniversary",
-                image: "images/products/invitation-anniversary.jpg",
+                video: "videos/invitation-anniversary.mp4", // Main product video
+                thumbnail: "images/products/invitation-anniversary.jpg", // Thumbnail for video
                 samples: [
-                    "images/samples/invitation-anniversary-1.jpg",
-                    "images/samples/invitation-anniversary-2.jpg",
-                    "images/samples/invitation-anniversary-3.jpg",
-                    "images/samples/invitation-anniversary-4.jpg"
+                    // Video samples for E-Invitation instead of images
+                    { type: "video", src: "videos/samples/anniversary-invitation-sample-1.mp4", thumbnail: "images/samples/invitation-anniversary-1.jpg" },
+                    { type: "video", src: "videos/samples/anniversary-invitation-sample-2.mp4", thumbnail: "images/samples/invitation-anniversary-2.jpg" },
+                    { type: "video", src: "videos/samples/anniversary-invitation-sample-3.mp4", thumbnail: "images/samples/invitation-anniversary-3.jpg" },
+                    { type: "video", src: "videos/samples/anniversary-invitation-sample-4.mp4", thumbnail: "images/samples/invitation-anniversary-4.jpg" }
                 ],
                 emoji: "💑",
-                customizable: false
+                customizable: false,
+                hasVideo: true,
+                hasVideoSamples: true,
             },
         ];
 
@@ -1978,8 +2110,9 @@
         const DELIVERY_CHARGE = 100;
         let currentProductForShare = null;
         let currentCustomizations = {};
-        let currentProductImages = [];
+        let currentProductMedia = [];
         let currentLightboxIndex = 0;
+        let currentMediaType = 'image'; // 'image' or 'video'
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
@@ -1993,13 +2126,25 @@
                 ? products 
                 : products.filter(p => p.category === currentFilter);
             
-            grid.innerHTML = filteredProducts.map(product => `
+            grid.innerHTML = filteredProducts.map(product => {
+                // Check if product has video
+                const hasVideo = product.hasVideo || false;
+                const mediaSrc = hasVideo ? (product.thumbnail || product.video) : product.image;
+                
+                return `
                 <div class="product-card" onclick="openProductModal(${product.id})">
                     <div class="product-image">
-                        <img src="${product.image}" alt="${product.name}" 
-                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        ${hasVideo ? 
+                            `<video muted loop playsinline>
+                                <source src="${product.video}" type="video/mp4">
+                                <img src="${product.thumbnail || 'images/products/default-thumbnail.jpg'}" alt="${product.name}">
+                            </video>` :
+                            `<img src="${product.image}" alt="${product.name}" 
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
+                        }
                         <span class="emoji-fallback" style="display:none;">${product.emoji}</span>
                         ${product.badge ? `<span class="product-badge">${product.badge}</span>` : ''}
+                        ${hasVideo ? `<div class="video-play-button">▶</div>` : ''}
                     </div>
                     <div class="product-info">
                         <div class="product-category">${getCategoryName(product.category)}</div>
@@ -2014,7 +2159,7 @@
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         // Filter Products
@@ -2059,13 +2204,24 @@
                 );
             }
             
-            grid.innerHTML = filtered.map(product => `
+            grid.innerHTML = filtered.map(product => {
+                const hasVideo = product.hasVideo || false;
+                const mediaSrc = hasVideo ? (product.thumbnail || product.video) : product.image;
+                
+                return `
                 <div class="product-card" onclick="openProductModal(${product.id})">
                     <div class="product-image">
-                        <img src="${product.image}" alt="${product.name}" 
-                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        ${hasVideo ? 
+                            `<video muted loop playsinline>
+                                <source src="${product.video}" type="video/mp4">
+                                <img src="${product.thumbnail || 'images/products/default-thumbnail.jpg'}" alt="${product.name}">
+                            </video>` :
+                            `<img src="${product.image}" alt="${product.name}" 
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
+                        }
                         <span class="emoji-fallback" style="display:none;">${product.emoji}</span>
                         ${product.badge ? `<span class="product-badge">${product.badge}</span>` : ''}
+                        ${hasVideo ? `<div class="video-play-button">▶</div>` : ''}
                     </div>
                     <div class="product-info">
                         <div class="product-category">${getCategoryName(product.category)}</div>
@@ -2080,7 +2236,7 @@
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         // Get Category Name
@@ -2104,7 +2260,77 @@
             
             currentProductForShare = product;
             currentCustomizations = {};
-            currentProductImages = [product.image, ...product.samples];
+            currentProductMedia = [];
+            currentMediaType = product.hasVideo ? 'video' : 'image';
+            
+            // Build media array
+            if (product.hasVideo) {
+                currentProductMedia.push({
+                    type: 'video',
+                    src: product.video,
+                    thumbnail: product.thumbnail
+                });
+            } else {
+                currentProductMedia.push({
+                    type: 'image',
+                    src: product.image
+                });
+            }
+            
+            // Add samples - for Magazine and E-Invitations, use video samples
+            // For other products, use image samples
+            if (product.hasVideoSamples && product.category === 'magazines') {
+                // Magazine: Use video samples
+                product.samples.forEach(sample => {
+                    if (sample.type === 'video') {
+                        currentProductMedia.push({
+                            type: 'video',
+                            src: sample.src,
+                            thumbnail: sample.thumbnail
+                        });
+                    } else {
+                        // Fallback for images if needed
+                        currentProductMedia.push({
+                            type: 'image',
+                            src: sample
+                        });
+                    }
+                });
+            } else if (product.hasVideoSamples && product.category === 'invitations') {
+                // E-Invitations: Use video samples
+                product.samples.forEach(sample => {
+                    if (sample.type === 'video') {
+                        currentProductMedia.push({
+                            type: 'video',
+                            src: sample.src,
+                            thumbnail: sample.thumbnail
+                        });
+                    } else {
+                        // Fallback for images if needed
+                        currentProductMedia.push({
+                            type: 'image',
+                            src: sample
+                        });
+                    }
+                });
+            } else {
+                // Other products: Use image samples as before
+                if (Array.isArray(product.samples)) {
+                    product.samples.forEach(sample => {
+                        if (typeof sample === 'string') {
+                            currentProductMedia.push({
+                                type: 'image',
+                                src: sample
+                            });
+                        } else if (sample.type === 'image') {
+                            currentProductMedia.push({
+                                type: 'image',
+                                src: sample.src
+                            });
+                        }
+                    });
+                }
+            }
             
             // Reset customizations for this product
             if (product.customizable && product.options) {
@@ -2144,24 +2370,58 @@
                 `;
             }
             
+            // Generate thumbnails HTML
+            const thumbnailsHTML = currentProductMedia.map((media, index) => {
+                if (media.type === 'video') {
+                    return `
+                        <div class="product-thumbnail ${index === 0 ? 'active' : ''}" onclick="changeMainMedia(${index}, ${productId})">
+                            <video muted loop playsinline>
+                                <source src="${media.src}" type="video/mp4">
+                                <img src="${media.thumbnail || 'images/products/default-thumbnail.jpg'}" alt="Video thumbnail">
+                            </video>
+                            <div class="video-thumbnail-icon">▶</div>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="product-thumbnail ${index === 0 ? 'active' : ''}" onclick="changeMainMedia(${index}, ${productId})">
+                            <img src="${media.src}" alt="Image ${index + 1}" 
+                                 onerror="this.style.display='none'; this.parentElement.innerHTML='<span>${product.emoji}</span>';">
+                        </div>
+                    `;
+                }
+            }).join('');
+            
+            // Main media container
+            const mainMediaHTML = product.hasVideo ? `
+                <div class="product-main-media-container" onclick="openMediaViewer(0, ${productId})">
+                    <video class="product-main-media" id="productMainVideo" muted loop playsinline>
+                        <source src="${product.video}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                    <div class="video-play-button">▶</div>
+                    <div class="view-large-text">
+                        <span>Click to view larger</span>
+                    </div>
+                </div>
+            ` : `
+                <div class="product-main-media-container" onclick="openMediaViewer(0, ${productId})">
+                    <img src="${product.image}" alt="${product.name}" 
+                         class="product-main-media"
+                         id="productMainImage"
+                         onerror="this.style.display='none'; this.parentElement.innerHTML='<span style=\'font-size: 48px;\'>${product.emoji}</span>';">
+                    <div class="view-large-text">
+                        <span>Click to view larger</span>
+                    </div>
+                </div>
+            `;
+            
             modalBody.innerHTML = `
                 <div class="product-detail-grid">
                     <div class="product-detail-gallery">
-                        <div class="product-main-image-container" onclick="openLightbox(0, ${productId})">
-                            <img src="${product.image}" alt="${product.name}" 
-                                 class="product-main-image"
-                                 onerror="this.style.display='none'; this.parentElement.innerHTML='<span style=\'font-size: 48px;\'>${product.emoji}</span>';">
-                            <div class="view-large-text">
-                                <span>Click to view larger</span>
-                            </div>
-                        </div>
+                        ${mainMediaHTML}
                         <div class="product-thumbnails">
-                            ${[product.image, ...product.samples].map((img, index) => `
-                                <div class="product-thumbnail ${index === 0 ? 'active' : ''}" onclick="changeMainImage('${img}', ${index}, ${productId})">
-                                    <img src="${img}" alt="Image ${index + 1}" 
-                                         onerror="this.style.display='none'; this.parentElement.innerHTML='<span>${product.emoji}</span>';">
-                                </div>
-                            `).join('')}
+                            ${thumbnailsHTML}
                         </div>
                     </div>
                     <div class="product-detail-info">
@@ -2189,7 +2449,7 @@
                                 <button class="share-btn whatsapp" onclick="shareProduct('whatsapp', ${product.id})">
                                     <span>Share on WhatsApp</span>
                                 </button>
-                                <button class="share-btn instagram" onclick="shareProduct('instagram', ${product.id})">
+                                <button class="share-btn instagram" onclick="shareProduct('instagram', ${productId})">
                                     <span>Share on Instagram</span>
                                 </button>
                                 <button class="share-btn copy" onclick="shareProduct('copy', ${product.id})">
@@ -2202,37 +2462,100 @@
             `;
             
             document.getElementById('productModal').classList.add('active');
+            
+            // Auto-play video if it's a video product
+            if (product.hasVideo) {
+                const videoElement = document.getElementById('productMainVideo');
+                if (videoElement) {
+                    videoElement.play().catch(e => console.log("Video autoplay prevented:", e));
+                }
+            }
         }
 
-        // Change main image when thumbnail is clicked
-        function changeMainImage(imageSrc, index, productId) {
+        // Change main media when thumbnail is clicked
+        function changeMainMedia(index, productId) {
             const product = products.find(p => p.id === productId);
             if (!product) return;
             
-            const mainImage = document.querySelector('.product-main-image');
+            const media = currentProductMedia[index];
+            const mainMediaContainer = document.querySelector('.product-main-media-container');
             const thumbnails = document.querySelectorAll('.product-thumbnail');
             
-            mainImage.src = imageSrc;
+            if (media.type === 'video') {
+                mainMediaContainer.innerHTML = `
+                    <video class="product-main-media" id="productMainVideo" muted loop playsinline>
+                        <source src="${media.src}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                    <div class="video-play-button">▶</div>
+                    <div class="view-large-text">
+                        <span>Click to view larger</span>
+                    </div>
+                `;
+                
+                // Auto-play the video
+                setTimeout(() => {
+                    const videoElement = document.getElementById('productMainVideo');
+                    if (videoElement) {
+                        videoElement.play().catch(e => console.log("Video autoplay prevented:", e));
+                    }
+                }, 100);
+            } else {
+                mainMediaContainer.innerHTML = `
+                    <img src="${media.src}" alt="${product.name}" 
+                         class="product-main-media"
+                         id="productMainImage"
+                         onerror="this.style.display='none'; this.parentElement.innerHTML='<span style=\'font-size: 48px;\'>${product.emoji}</span>';">
+                    <div class="view-large-text">
+                        <span>Click to view larger</span>
+                    </div>
+                `;
+            }
+            
             thumbnails.forEach((thumb, i) => {
                 thumb.classList.toggle('active', i === index);
             });
+            
+            currentLightboxIndex = index;
         }
 
-        // Open lightbox with clicked image
-        function openLightbox(index, productId) {
+        // Open media viewer (lightbox for images, video player for videos)
+        function openMediaViewer(index, productId) {
             const product = products.find(p => p.id === productId);
             if (!product) return;
             
-            currentProductImages = [product.image, ...product.samples];
-            currentLightboxIndex = index;
+            const media = currentProductMedia[index];
             
-            const lightboxImage = document.getElementById('lightboxImage');
-            const lightboxCounter = document.getElementById('lightboxCounter');
+            if (media.type === 'video') {
+                // Open video lightbox
+                const videoLightbox = document.getElementById('videoLightboxModal');
+                const videoElement = document.getElementById('videoLightboxVideo');
+                
+                videoElement.src = media.src;
+                videoElement.load();
+                
+                videoLightbox.classList.add('active');
+            } else {
+                // Open image lightbox
+                currentLightboxIndex = index;
+                const lightboxImage = document.getElementById('lightboxImage');
+                const lightboxCounter = document.getElementById('lightboxCounter');
+                
+                lightboxImage.src = media.src;
+                lightboxCounter.textContent = `${index + 1} / ${currentProductMedia.length}`;
+                
+                document.getElementById('lightboxModal').classList.add('active');
+            }
+        }
+
+        // Close video lightbox
+        function closeVideoLightbox() {
+            const videoLightbox = document.getElementById('videoLightboxModal');
+            const videoElement = document.getElementById('videoLightboxVideo');
             
-            lightboxImage.src = currentProductImages[index];
-            lightboxCounter.textContent = `${index + 1} / ${currentProductImages.length}`;
-            
-            document.getElementById('lightboxModal').classList.add('active');
+            videoElement.pause();
+            videoElement.currentTime = 0;
+            videoLightbox.classList.remove('active');
         }
 
         // Close lightbox
@@ -2242,26 +2565,36 @@
 
         // Navigate to previous image in lightbox
         function prevLightboxImage() {
-            if (currentProductImages.length === 0) return;
+            if (currentProductMedia.length === 0) return;
             
-            currentLightboxIndex = (currentLightboxIndex - 1 + currentProductImages.length) % currentProductImages.length;
+            currentLightboxIndex = (currentLightboxIndex - 1 + currentProductMedia.length) % currentProductMedia.length;
             const lightboxImage = document.getElementById('lightboxImage');
             const lightboxCounter = document.getElementById('lightboxCounter');
             
-            lightboxImage.src = currentProductImages[currentLightboxIndex];
-            lightboxCounter.textContent = `${currentLightboxIndex + 1} / ${currentProductImages.length}`;
+            // Skip videos in image lightbox
+            while (currentProductMedia[currentLightboxIndex].type === 'video') {
+                currentLightboxIndex = (currentLightboxIndex - 1 + currentProductMedia.length) % currentProductMedia.length;
+            }
+            
+            lightboxImage.src = currentProductMedia[currentLightboxIndex].src;
+            lightboxCounter.textContent = `${currentLightboxIndex + 1} / ${currentProductMedia.length}`;
         }
 
         // Navigate to next image in lightbox
         function nextLightboxImage() {
-            if (currentProductImages.length === 0) return;
+            if (currentProductMedia.length === 0) return;
             
-            currentLightboxIndex = (currentLightboxIndex + 1) % currentProductImages.length;
+            currentLightboxIndex = (currentLightboxIndex + 1) % currentProductMedia.length;
             const lightboxImage = document.getElementById('lightboxImage');
             const lightboxCounter = document.getElementById('lightboxCounter');
             
-            lightboxImage.src = currentProductImages[currentLightboxIndex];
-            lightboxCounter.textContent = `${currentLightboxIndex + 1} / ${currentProductImages.length}`;
+            // Skip videos in image lightbox
+            while (currentProductMedia[currentLightboxIndex].type === 'video') {
+                currentLightboxIndex = (currentLightboxIndex + 1) % currentProductMedia.length;
+            }
+            
+            lightboxImage.src = currentProductMedia[currentLightboxIndex].src;
+            lightboxCounter.textContent = `${currentLightboxIndex + 1} / ${currentProductMedia.length}`;
         }
 
         // Close lightbox when clicking outside image
@@ -2271,17 +2604,30 @@
             }
         });
 
+        // Close video lightbox when clicking outside
+        document.getElementById('videoLightboxModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeVideoLightbox();
+            }
+        });
+
         // Keyboard navigation for lightbox
         document.addEventListener('keydown', function(e) {
             const lightbox = document.getElementById('lightboxModal');
-            if (!lightbox.classList.contains('active')) return;
+            const videoLightbox = document.getElementById('videoLightboxModal');
             
-            if (e.key === 'Escape') {
-                closeLightbox();
-            } else if (e.key === 'ArrowLeft') {
-                prevLightboxImage();
-            } else if (e.key === 'ArrowRight') {
-                nextLightboxImage();
+            if (lightbox.classList.contains('active')) {
+                if (e.key === 'Escape') {
+                    closeLightbox();
+                } else if (e.key === 'ArrowLeft') {
+                    prevLightboxImage();
+                } else if (e.key === 'ArrowRight') {
+                    nextLightboxImage();
+                }
+            }
+            
+            if (videoLightbox.classList.contains('active') && e.key === 'Escape') {
+                closeVideoLightbox();
             }
         });
 
@@ -2311,7 +2657,7 @@
             document.getElementById('productModal').classList.remove('active');
             currentProductForShare = null;
             currentCustomizations = {};
-            currentProductImages = [];
+            currentProductMedia = [];
         }
 
         // Share Product Function - Updated with Instagram only
